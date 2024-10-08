@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Cat Jump Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: monospace;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        #restartButton {
+            position: absolute;
+            font-size: 20px;
+            padding: 10px 20px;
+            display: none;
+            top: 55%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1000" height="300"></canvas>
+    <button id="restartButton">Restart</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const restartButton = document.getElementById('restartButton');
+
+        const cat = {
+            x: 120,
+            y: 250,
+            width: 40,
+            height: 40,
+            jumping: false,
+            jumpHeight: 140,
+            jumpCount: 0,
+            pawState: 0,
+            pawUpdateCounter: 0
+        };
+
+        const obstacle = {
+            x: canvas.width,
+            y: 250,
+            width: 20,
+            height: 40,
+            speed: 6
+        };
+
+        let score = 0;
+        let gameOver = false;
+        let speedIncreaseCount = 0;
+
+        function drawCat() {
+            ctx.fillStyle = 'black';
+            ctx.font = '18px monospace';
+            ctx.fillText('/\\__/\\', cat.x, cat.y - 25);
+            ctx.fillText('(=\'ᴗ\'=)', cat.x - 5, cat.y - 5);
+            
+            // 根据 pawState 绘制不同的猫爪
+            if (cat.pawState === 0) {
+                ctx.fillText('(") (")', cat.x, cat.y + 15);
+            } else {
+                ctx.fillText('(" )")', cat.x, cat.y + 15);
+            }
+        }
+
+        function drawObstacle() {
+            ctx.fillStyle = 'black';
+            ctx.font = '24px monospace';
+            ctx.fillText('|\\', obstacle.x, obstacle.y - 25);
+            ctx.fillText('| \\', obstacle.x, obstacle.y - 5);
+            ctx.fillText('|  \\', obstacle.x, obstacle.y + 15);
+        }
+
+        function drawScore() {
+            ctx.fillStyle = 'black';
+            ctx.font = '24px monospace';
+            ctx.fillText(`Score: ${score}`, 820, 40);
+        }
+
+        function jump() {
+            if (!cat.jumping) {
+                cat.jumping = true;
+                cat.jumpCount = 0;
+            }
+        }
+
+        function updateCat() {
+            if (cat.jumping) {
+                cat.jumpCount++;
+                if (cat.jumpCount < 20) {
+                    cat.y -= 6;
+                } else if (cat.jumpCount < 35) {
+                    cat.y += 0;
+                } else if (cat.jumpCount < 55) {
+                    cat.y += 6;
+                } else {
+                    cat.jumping = false;
+                    cat.y = 250;
+                }
+            }
+            // 更新猫爪状态
+            cat.pawUpdateCounter++;
+            if (cat.pawUpdateCounter >= 10) {  // 每10帧更新一次爪子状态
+                cat.pawState = 1 - cat.pawState;  // 在0和1之间切换
+                cat.pawUpdateCounter = 0;
+            }
+        }
+
+        function updateObstacle() {
+            obstacle.x -= obstacle.speed;
+            if (obstacle.x < -obstacle.width) {
+                obstacle.x = canvas.width;
+                if (score < 100) {
+                    score++;
+                    if (score % 5 === 0 && speedIncreaseCount < 3) {
+                        speedIncreaseCount++;
+                        obstacle.speed += 1;
+                    }
+                }
+            }
+        }
+
+        function checkCollision() {
+            if (
+                cat.x < obstacle.x + obstacle.width &&
+                cat.x + cat.width > obstacle.x &&
+                cat.y > obstacle.y - obstacle.height
+            ) {
+                gameOver = true;
+                restartButton.style.display = 'block';
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameOver) {
+                updateCat();
+                updateObstacle();
+                checkCollision();
+
+                drawCat();
+                drawObstacle();
+                drawScore();
+
+                requestAnimationFrame(gameLoop);
+            } else {
+                ctx.fillStyle = 'black';
+                ctx.font = '36px monospace';
+                ctx.fillText('Game Over', 400, 150);
+            }
+        }
+
+        function restartGame() {
+            score = 0;
+            gameOver = false;
+            speedIncreaseCount = 0;
+            cat.y = 250;
+            cat.jumping = false;
+            cat.pawState = 0;
+            cat.pawUpdateCounter = 0;
+            obstacle.x = canvas.width;
+            obstacle.speed = 6;
+            restartButton.style.display = 'none';
+            gameLoop();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                jump();
+            }
+        });
+
+        restartButton.addEventListener('click', restartGame);
+
+        gameLoop();
+    </script>
+</body>
+</html>
