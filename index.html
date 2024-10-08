@@ -7,6 +7,7 @@
     <style>
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -14,77 +15,112 @@
             background-color: #f0f0f0;
             font-family: monospace;
         }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 80vh;
+            max-height: 300px;
+        }
         canvas {
             border: 1px solid black;
+            width: 100%;
+            height: 100%;
         }
         #restartButton {
-            position: absolute;
-            font-size: 20px;
-            padding: 10px 20px;
+            font-size: 5vmin;
+            padding: 2vmin 4vmin;
             display: none;
-            top: 55%;
+            margin-top: 2vmin;
+        }
+        #touchArea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="1000" height="300"></canvas>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="touchArea"></div>
+    </div>
     <button id="restartButton">Restart</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const restartButton = document.getElementById('restartButton');
+        const touchArea = document.getElementById('touchArea');
 
-        const cat = {
-            x: 120,
-            y: 250,
-            width: 40,
-            height: 40,
-            jumping: false,
-            jumpHeight: 140,
-            jumpCount: 0,
-            pawState: 0,
-            pawUpdateCounter: 0
-        };
-
-        const obstacle = {
-            x: canvas.width,
-            y: 250,
-            width: 20,
-            height: 40,
-            speed: 6
-        };
-
+        let canvasWidth, canvasHeight;
+        let cat, obstacle;
         let score = 0;
         let gameOver = false;
         let speedIncreaseCount = 0;
+        let isMobile = false;
+
+        function initGame() {
+            cat = {
+                x: canvasWidth * 0.12,
+                y: canvasHeight - 50,
+                width: canvasWidth * 0.04,
+                height: canvasHeight * 0.13,
+                jumping: false,
+                jumpHeight: canvasHeight * 0.47,
+                jumpCount: 0,
+                pawState: 0,
+                pawUpdateCounter: 0
+            };
+
+            obstacle = {
+                x: canvasWidth,
+                y: canvasHeight - 50,
+                width: canvasWidth * 0.02,
+                height: canvasHeight * 0.13,
+                speed: canvasWidth * 0.006
+            };
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvasWidth = container.clientWidth;
+            canvasHeight = container.clientHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            initGame();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         function drawCat() {
             ctx.fillStyle = 'black';
-            ctx.font = '18px monospace';
-            ctx.fillText('/\\__/\\', cat.x, cat.y - 25);
-            ctx.fillText('(=\'ᴗ\'=)', cat.x - 5, cat.y - 5);
+            ctx.font = `${canvasHeight * 0.06}px monospace`;
+            ctx.fillText('/\\__/\\', cat.x, cat.y - cat.height * 0.625);
+            ctx.fillText('(=\'ᴗ\'=)', cat.x - cat.width * 0.125, cat.y - cat.height * 0.125);
             
-            // 根据 pawState 绘制不同的猫爪
             if (cat.pawState === 0) {
-                ctx.fillText('(") (")', cat.x, cat.y + 15);
+                ctx.fillText('(") (")', cat.x, cat.y + cat.height * 0.375);
             } else {
-                ctx.fillText('(" )")', cat.x, cat.y + 15);
+                ctx.fillText('(" )")', cat.x, cat.y + cat.height * 0.375);
             }
         }
 
         function drawObstacle() {
             ctx.fillStyle = 'black';
-            ctx.font = '24px monospace';
-            ctx.fillText('|\\', obstacle.x, obstacle.y - 25);
-            ctx.fillText('| \\', obstacle.x, obstacle.y - 5);
-            ctx.fillText('|  \\', obstacle.x, obstacle.y + 15);
+            ctx.font = `${canvasHeight * 0.08}px monospace`;
+            ctx.fillText('|\\', obstacle.x, obstacle.y - obstacle.height * 0.625);
+            ctx.fillText('| \\', obstacle.x, obstacle.y - obstacle.height * 0.125);
+            ctx.fillText('|  \\', obstacle.x, obstacle.y + obstacle.height * 0.375);
         }
 
         function drawScore() {
             ctx.fillStyle = 'black';
-            ctx.font = '24px monospace';
-            ctx.fillText(`Score: ${score}`, 820, 40);
+            ctx.font = `${canvasHeight * 0.08}px monospace`;
+            ctx.fillText(`Score: ${score}`, canvasWidth * 0.82, canvasHeight * 0.13);
         }
 
         function jump() {
@@ -98,20 +134,19 @@
             if (cat.jumping) {
                 cat.jumpCount++;
                 if (cat.jumpCount < 20) {
-                    cat.y -= 6;
+                    cat.y -= canvasHeight * 0.02;
                 } else if (cat.jumpCount < 35) {
                     cat.y += 0;
                 } else if (cat.jumpCount < 55) {
-                    cat.y += 6;
+                    cat.y += canvasHeight * 0.02;
                 } else {
                     cat.jumping = false;
-                    cat.y = 250;
+                    cat.y = canvasHeight - 50;
                 }
             }
-            // 更新猫爪状态
             cat.pawUpdateCounter++;
-            if (cat.pawUpdateCounter >= 10) {  // 每10帧更新一次爪子状态
-                cat.pawState = 1 - cat.pawState;  // 在0和1之间切换
+            if (cat.pawUpdateCounter >= 10) {
+                cat.pawState = 1 - cat.pawState;
                 cat.pawUpdateCounter = 0;
             }
         }
@@ -119,12 +154,12 @@
         function updateObstacle() {
             obstacle.x -= obstacle.speed;
             if (obstacle.x < -obstacle.width) {
-                obstacle.x = canvas.width;
+                obstacle.x = canvasWidth;
                 if (score < 100) {
                     score++;
                     if (score % 5 === 0 && speedIncreaseCount < 3) {
                         speedIncreaseCount++;
-                        obstacle.speed += 1;
+                        obstacle.speed += canvasWidth * 0.001;
                     }
                 }
             }
@@ -142,7 +177,7 @@
         }
 
         function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             if (!gameOver) {
                 updateCat();
@@ -156,8 +191,8 @@
                 requestAnimationFrame(gameLoop);
             } else {
                 ctx.fillStyle = 'black';
-                ctx.font = '36px monospace';
-                ctx.fillText('Game Over', 400, 150);
+                ctx.font = `${canvasHeight * 0.12}px monospace`;
+                ctx.fillText('Game Over', canvasWidth * 0.4, canvasHeight * 0.5);
             }
         }
 
@@ -165,24 +200,34 @@
             score = 0;
             gameOver = false;
             speedIncreaseCount = 0;
-            cat.y = 250;
-            cat.jumping = false;
-            cat.pawState = 0;
-            cat.pawUpdateCounter = 0;
-            obstacle.x = canvas.width;
-            obstacle.speed = 6;
+            initGame();
             restartButton.style.display = 'none';
             gameLoop();
         }
 
-        document.addEventListener('keydown', (event) => {
-            if (event.code === 'Space') {
-                jump();
+        function checkMobile() {
+            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function setupEventListeners() {
+            if (isMobile) {
+                touchArea.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    jump();
+                });
+            } else {
+                document.addEventListener('keydown', (event) => {
+                    if (event.code === 'Space') {
+                        jump();
+                    }
+                });
             }
-        });
+        }
 
         restartButton.addEventListener('click', restartGame);
 
+        checkMobile();
+        setupEventListeners();
         gameLoop();
     </script>
 </body>
