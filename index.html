@@ -11,15 +11,17 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
         }
         #gameContainer {
-            width: 100%;
-            height: 100%;
             position: relative;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         #gameCanvas {
-            width: 100%;
-            height: 100%;
             display: block;
         }
         #touchArea {
@@ -50,15 +52,17 @@
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
         <div id="touchArea"></div>
+        <button id="restartButton">Restart</button>
     </div>
-    <button id="restartButton">Restart</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const restartButton = document.getElementById('restartButton');
         const touchArea = document.getElementById('touchArea');
+        const container = document.getElementById('gameContainer');
 
+        const GAME_ASPECT_RATIO = 16 / 9;
         let canvasWidth, canvasHeight;
         let cat, obstacle;
         let score = 0;
@@ -89,11 +93,22 @@
         }
 
         function resizeCanvas() {
-            const container = document.getElementById('gameContainer');
-            canvasWidth = container.clientWidth;
-            canvasHeight = container.clientHeight;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            if (windowWidth / windowHeight > GAME_ASPECT_RATIO) {
+                canvasHeight = windowHeight * 0.9;
+                canvasWidth = canvasHeight * GAME_ASPECT_RATIO;
+            } else {
+                canvasWidth = windowWidth * 0.9;
+                canvasHeight = canvasWidth / GAME_ASPECT_RATIO;
+            }
+
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
+            container.style.width = `${canvasWidth}px`;
+            container.style.height = `${canvasHeight}px`;
+
             initGame();
         }
 
